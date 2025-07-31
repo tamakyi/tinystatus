@@ -1,6 +1,3 @@
-http,   200,  狼的公告板,              https://blog.tama.guru
-http,   200,  狼的共享盘,              https://share.tama.guru
-http,   200,  狼的导航页,              https://tama.guru
-http,   200,  狼的评论系统,            https://artalk.tama.guru
-http,   200,  AcFun直播,              https://live.acfun.cn
-http,   200,  AcFun主页,              https://www.acfun.cn
+http,example.com,Example Website,4,200
+ping,8.8.8.8,DNS Server,6,0
+port,example.com:443,HTTPS Port,4,0
