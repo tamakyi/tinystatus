@@ -1,4 +1,4 @@
-#!/usr/bin/env sh
+#!/usr/bin/env bash
 
 # Configuration variables
 TITLE="狼的状态板 3.0"
