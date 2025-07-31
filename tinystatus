@@ -1,5 +1,4 @@
 #!/usr/bin/env bash
-set -e  # 任何错误立即终止脚本
 
 # Configuration variables
 TITLE="狼的状态板 3.0"
