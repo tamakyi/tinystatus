@@ -1,12 +1,9 @@
 name: TinyStatus Monitor
 
 on:
-  push:
-    branches:
-      - main  # 根据你的主分支名称修改
-  pull_request:
-  schedule:
-    - cron: '0 */3 * * *'  # 每3小时运行一次（UTC时间）
+  workflow_dispatch:
+  # schedule:
+  #   - cron: '*/10 * * * *'
 
 jobs:
   monitor:
@@ -20,15 +17,14 @@ jobs:
         with:
           python-version: '3.11'  # 根据项目需求选择版本
 
-      - name: Install dependencies
-        run: |
-          pip install --upgrade pip
-          pip install -r requirements.txt
 
-      - name: Run TinyStatus Monitor
-        env:
-          LOG_LEVEL: INFO  # 可根据需要调整日志级别
-          CHECK_INTERVAL: 30  # 监控间隔（秒）
+      - name: Run TinyStatus
+        run: |
+          chmod +x ./tinystatus
+          ./tinystatus
+          mv index.html html/
+
+      - name: Commit changes
         run: |
           python -m tinystatus  # 假设入口文件为tinystatus.py
 
