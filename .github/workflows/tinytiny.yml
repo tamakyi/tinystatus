@@ -18,15 +18,9 @@ jobs:
           python-version: '3.11'  # 根据项目需求选择版本
 
 
-      - name: Run TinyStatus
-        run: |
-          chmod +x ./tinystatus
-          ./tinystatus
-          mv index.html html/
-
       - name: Commit changes
         run: |
-          python -m tinystatus  # 假设入口文件为tinystatus.py
+          python -m tinystatus.py  # 假设入口文件为tinystatus.py
 
       - name: Archive HTML reports
         uses: actions/upload-artifact@v4
@@ -34,18 +28,3 @@ jobs:
           name: status-reports
           path: html/  # 输出目录
           retention-days: 7  # 保留7天
-
-  notify:
-    needs: [monitor]
-    runs-on: ubuntu-latest
-    if: always()  # 总是触发通知
-    steps:
-      - name: Check workflow status
-        id: check_status
-        run: echo "##[set-output name=status;]$(echo $?)"
-
-      - name: Send notification
-        uses: some-notification-action@v1  # 替换为你使用的通知工具
-        with:
-          status: ${{ steps.check_status.outputs.status }}
-          report_url: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
