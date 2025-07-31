@@ -23,7 +23,6 @@ jobs:
         run: |
           chmod +x ./tinystatus
           ./tinystatus
-          mkdir html
           mv index.html html/
 
       - name: Commit changes
