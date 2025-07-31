@@ -1,41 +1,55 @@
-name: TinyStatus CI
+name: TinyStatus Monitor
 
 on:
+  push:
+    branches:
+      - main  # 根据你的主分支名称修改
+  pull_request:
   schedule:
-    - cron: '*/10 * * * *'  # 每10分钟执行一次
+    - cron: '0 */3 * * *'  # 每3小时运行一次（UTC时间）
 
 jobs:
-  build:
+  monitor:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v3
+      - name: Checkout code
+        uses: actions/checkout@v4
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v3
+      - name: Set up Python
+        uses: actions/setup-python@v4
         with:
-          node-version: '18'
+          python-version: '3.11'  # 根据项目需求选择版本
 
       - name: Install dependencies
-        run: npm ci
-
-      - name: Run TinyStatus
         run: |
-          chmod +x ./tinystatus
-          ./tinystatus
-          mkdir html
-          mv index.html html/
+          pip install --upgrade pip
+          pip install -r requirements.txt
 
-      - name: Commit changes
+      - name: Run TinyStatus Monitor
+        env:
+          LOG_LEVEL: INFO  # 可根据需要调整日志级别
+          CHECK_INTERVAL: 30  # 监控间隔（秒）
         run: |
-          git config --local user.email "action@github.com"
-          git config --local user.name "GitHub Action"
-          git add html/index.html
-          git commit -m "Update status page" -a || true
+          python -m tinystatus  # 假设入口文件为tinystatus.py
 
-      - name: Deploy to GitHub Pages
-        uses: JamesIves/github-pages-deploy-action@v4
+      - name: Archive HTML reports
+        uses: actions/upload-artifact@v4
         with:
-          branch: gh-pages
-          folder: html
-          clean: true
+          name: status-reports
+          path: html/  # 输出目录
+          retention-days: 7  # 保留7天
+
+  notify:
+    needs: [monitor]
+    runs-on: ubuntu-latest
+    if: always()  # 总是触发通知
+    steps:
+      - name: Check workflow status
+        id: check_status
+        run: echo "##[set-output name=status;]$(echo $?)"
+
+      - name: Send notification
+        uses: some-notification-action@v1  # 替换为你使用的通知工具
+        with:
+          status: ${{ steps.check_status.outputs.status }}
+          report_url: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
