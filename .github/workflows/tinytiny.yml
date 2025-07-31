@@ -21,7 +21,7 @@ jobs:
       - name: Commit changes
         run: |
           pip install -r requirements.txt
-          python -m tinystatus.single
+          python -m main
 
       - name: Archive HTML reports
         uses: actions/upload-artifact@v4
