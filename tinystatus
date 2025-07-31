@@ -64,11 +64,11 @@ mkdir -p "${TMP_DIR}" || exit 1
 # Execute checks
 id=0
 while IFS="$(printf '\n')" read -r line; do
-    check="$(get_element 1 "${line}")"
-    code="$(get_element 2 "${line}")"
-    name="$(get_element 3 "${line}")"
-    host="$(get_element 4 "${line}")"
-    check "${check}" "${host}" "${name}" "${code}" "${id}" &
+    check "$(get_element 1 "${line}")" \
+          "$(get_element 2 "${line}")" \
+          "$(get_element 3 "${line}")" \
+          "$(get_element 4 "${line}")" \
+          "${id}"
     ((id++))
 done < "${CHECKS_FILE}"
 wait
