@@ -22,8 +22,6 @@ jobs:
         run: |
           pip install -r requirements.txt
           python -m main
-          cp index.html html/index.html
-          cp history.html html/history.html
 
       - name: Archive HTML reports
         uses: actions/upload-artifact@v4
