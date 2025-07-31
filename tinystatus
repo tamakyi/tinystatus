@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+set -e  # 任何错误立即终止脚本
 
 # Configuration variables
 TITLE="狼的状态板 3.0"
@@ -8,135 +9,166 @@ INCIDENTS_FILE="${2:-incidents.txt}"
 OUTAGE_RC=false
 TIMEOUT=10
 USER_AGENT="User-Agent: Mozilla/5.0 (X11; Linux x86_64; Debian) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/79.0.3945.88 Safari/537.36"
-TMP_DIR="$(mktemp -d)"
+TMP_DIR=$(mktemp -d)
 
-command_exists(){
-    if ! command -v "${1}" >/dev/null 2>&1; then
-        echo >&2 "错误:未找到组件 ${1} ,请自行安装"
+command_exists() {
+    if ! command -v "$1" >/dev/null 2>&1; then
+        echo >&2 "错误: 未找到组件 $1，请自行安装"
         exit 1
     fi
 }
 
-get_element(){
-    echo "${2}" | awk -v col="${1}" -F',' '{gsub(/^[ \t]+|[ \t]+$/, "", $col); print $col}'
+get_element() {
+    local col="$1"
+    local line="$2"
+    echo "$line" | awk -v col="$col" -F',' '{gsub(/^[[:space:]]+|[[:space:]]+$/, "", $col); print $col}'
 }
 
-check(){
-    check="${1}"
-    host="${2}"
-    name="${3}"
-    expected_rc="${4}"
-    id="${5}"
+check() {
+    local check_type="$1"
+    local host="$2"
+    local name="$3"
+    local expected_rc="$4"
+    local id="$5"
 
-    ipversion="$(echo "${check}" | grep -o '[46]$')"
-    case "${check}" in
+    local ip_version
+    ip_version=$(echo "$check_type" | grep -o '[46]$')
+
+    case "$check_type" in
         http*)
-            rc="$(curl -${ipversion}sSkLo /dev/null -H "${USER_AGENT}" -m "${TIMEOUT}" -w "%{http_code}" "${host}" 2> "${TMP_DIR}/${id}.ko.info")"
-            if [ -s "${TMP_DIR}/${id}.ko.info" ]; then
-                sed -e 's,curl: ([0-9]*) ,,' -i "${TMP_DIR}/${id}.ko.info"
-            else
-                echo "Status code: ${rc}, expected: ${expected_rc}" > "${TMP_DIR}/${id}.ko.info"
-            fi;;
+            local response
+            response=$(curl -${ip_version}sSkLo /dev/null -H "$USER_AGENT" -m "$TIMEOUT" "$host" 2> "${TMP_DIR}/${id}.ko.info")
+            rc=$?
+            if [ "$rc" -eq 0 ]; then
+                echo "Status code: ${response}, expected: ${expected_rc}" > "${TMP_DIR}/${id}.ko.info"
+            fi
+            ;;
         ping*)
-            ping -${ipversion}W "${TIMEOUT}" -c 1 "${host}" >/dev/null 2>&1
-            rc=$?
-            [ "${rc}" -ne "${expected_rc}" ] && echo 'Host unreachable' > "${TMP_DIR}/${id}.ko.info";;
+            if ping -${ip_version}W "$TIMEOUT" -c 1 "$host" >/dev/null 2>&1; then
+                rc=0
+            else
+                rc=1
+                echo "Host unreachable" > "${TMP_DIR}/${id}.ko.info"
+            fi
+            ;;
         port*)
-            error="$(nc -${ipversion}w "${TIMEOUT}" -zv ${host} 2>&1)"
+            local error
+            error=$(nc -${ip_version}w "$TIMEOUT" -zv "$host" 2>&1)
             rc=$?
-            [ "${rc}" -ne "${expected_rc}" ] && echo "${error}" | sed -e 's,nc: ,,' > "${TMP_DIR}/${id}.ko.info";;
+            if [ "$rc" -ne 0 ]; then
+                echo "${error}" | sed -e 's,nc: ,,' > "${TMP_DIR}/${id}.ko.info"
+            fi
+            ;;
+        *)
+            echo "未知检查类型: $check_type" >&2
+            exit 1
+            ;;
     esac
 
-    # verity status and write files
-    if [ "${rc}" -eq "${expected_rc}" ]; then
-        echo "${name}" > "${TMP_DIR}/${id}.ok"
+    # 写入结果文件
+    if [ "$rc" -eq "$expected_rc" ]; then
+        echo "$name" > "${TMP_DIR}/${id}.ok"
     else
-        echo "${name}" > "${TMP_DIR}/${id}.ko"
+        echo "$name" > "${TMP_DIR}/${id}.ko"
     fi
 }
 
-# Verify requirements
-command_exists 'curl'
-command_exists 'nc'
-command_exists 'ping'
-mkdir -p "${TMP_DIR}" || exit 1
+# 验证依赖
+command_exists curl
+command_exists nc
+command_exists ping
 
-# Execute checks
+# 创建临时目录
+mkdir -p "$TMP_DIR" || exit 1
+
+# 执行检查（顺序执行）
 id=0
-while IFS="$(printf '\n')" read -r line; do
-    check "$(get_element 1 "${line}")" \
-          "$(get_element 2 "${line}")" \
-          "$(get_element 3 "${line}")" \
-          "$(get_element 4 "${line}")" \
-          "${id}"
+while IFS= read -r line; do
+    check_type=$(get_element 1 "$line")
+    host=$(get_element 2 "$line")
+    name=$(get_element 3 "$line")
+    expected_rc=$(get_element 4 "$line")
+    check "$check_type" "$host" "$name" "$expected_rc" "$id"
     ((id++))
-done < "${CHECKS_FILE}"
-wait
-OUTAGES_COUNT="$(ls "${TMP_DIR}/"*.ko | wc -l)"
+done < "$CHECKS_FILE"
 
-# Generate HTML
-cat << EOF
-<!DOCTYPE html><html lang="zh_CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no"><title>${TITLE}</title><style>
-body { font-family: segoe ui,Roboto,Oxygen-Sans,Ubuntu,Cantarell,helvetica neue,Verdana,sans-serif;background-image: url('https://r2.337845818.best/tamabox/box_background.png');background-size: cover;background-position: center;background-repeat: no-repeat;}
-h1 { margin-top: 30px; }
-ul { padding: 0px; }
-li { list-style: none; margin-bottom: 2px; padding: 5px; border-bottom: 1px solid #ddd; }
-.container { max-width: 600px; width: 100%; margin: 15px auto; background-color: rgba(0, 0, 0, 0.5); padding: 20px; border-radius: 10px; color: white; }
-.panel { text-align: center; padding: 10px; border: 0px; border-radius: 5px; }
-.failed-bg  { color: white; background-color: #E25D6A; }
-.success-bg { color: white; background-color: #52B86A; }
-.failed  { color: #E25D6A; }
-.success { color: #52B86A; }
-.small { font-size: 80%; }
-.status { float: right; }
-.footer { text-align: center; margin-top: 20px; }
-.footer a { text-decoration: none; color: #52B86A; text-shadow: 1px 1px 2px black; }
-</style></head>
-<body>
-<div class='container'>
-<h1>${HEADER}</h1>
-EOF
-if [ "${OUTAGES_COUNT}" -ne 0 ]; then
-    echo "<ul><li class='panel failed-bg'>${OUTAGES_COUNT} 个服务中断</li></ul>"
-else
-    echo "<ul><li class='panel success-bg'>所有服务运行正常</li></ul>"
-fi
-cat << EOF
-<h1>服务</h1>
-<ul>
-EOF
-for file in "${TMP_DIR}/"*.ko; do
-    [ -e "${file}" ] || continue
-    echo "<li>$(cat "${file}") <span class='small failed'>($(cat "${file}.info"))</span><span class='status failed'>已中断</span></li>"
-done
-for file in "${TMP_DIR}/"*.ok; do
-    [ -e "${file}" ] || continue
-    echo "<li>$(cat "${file}") <span class='status success'>正常运作</span></li>"
-done
-cat << EOF
-</ul>
-<p class=small> 最后检查时间: $(date +%FT%T%z)</p>
-EOF
-if [ -f "${INCIDENTS_FILE}" ]; then
-    echo '<h1>事件</h1>'
-    if [ -s "${INCIDENTS_FILE}" ]; then
-        sed 's|^\(.*\)$|<p>\1</p>|' "${INCIDENTS_FILE}"
+# 生成 HTML
+{
+    echo "<!DOCTYPE html><html lang=\"zh_CN\"><head>"
+    echo "<meta charset=\"utf-8\"><meta name=\"viewport\" content=\"width=device-width, initial-scale=1, shrink-to-fit=no\">"
+    echo "<title>$TITLE</title>"
+    echo "<style>"
+    echo "body { font-family: segoe ui,Roboto,Oxygen-Sans,Ubuntu,Cantarell,helvetica neue,Verdana,sans-serif; background-image: url('https://r2.337845818.best/tamabox/box_background.png'); background-size: cover; background-position: center; background-repeat: no-repeat; }"
+    echo "h1 { margin-top: 30px; }"
+    echo "ul { padding: 0px; }"
+    echo "li { list-style: none; margin-bottom: 2px; padding: 5px; border-bottom: 1px solid #ddd; }"
+    echo ".container { max-width: 600px; width: 100%; margin: 15px auto; background-color: rgba(0, 0, 0, 0.5); padding: 20px; border-radius: 10px; color: white; }"
+    echo ".panel { text-align: center; padding: 10px; border: 0px; border-radius: 5px; }"
+    echo ".failed-bg  { color: white; background-color: #E25D6A; }"
+    echo ".success-bg { color: white; background-color: #52B86A; }"
+    echo ".failed  { color: #E25D6A; }"
+    echo ".success { color: #52B86A; }"
+    echo ".small { font-size: 80%; }"
+    echo ".status { float: right; }"
+    echo ".footer { text-align: center; margin-top: 20px; }"
+    echo ".footer a { text-decoration: none; color: #52B86A; text-shadow: 1px 1px 2px black; }"
+    echo "</style>"
+    echo "</head>"
+    echo "<body>"
+    echo "<div class='container'>"
+    echo "<h1>$HEADER</h1>"
+
+    # 状态概览
+    if [ -n "$(ls ${TMP_DIR}/*.ko 2>/dev/null)" ]; then
+        echo "<ul><li class='panel failed-bg'>$(ls ${TMP_DIR}/*.ko | wc -l) 个服务中断</li></ul>"
     else
-        echo '<p>没有事件需要通报 ;)</p>'
+        echo "<ul><li class='panel success-bg'>所有服务运行正常</li></ul>"
     fi
-fi
-cat <<EOF
-</div>
-<div class='footer'>
-    <a href="https://blog.tama.guru">公告板</a> | 
-    <a href="https://box.tama.guru">提问箱</a> | 
-    <a href="https://share.tama.guru">盘</a>
-</div>
-</body></html>
-EOF
 
-# Cleanup and exit
-rm -r "${TMP_DIR}" 2>/dev/null
-if "${OUTAGE_RC}"; then
-    exit "${OUTAGES_COUNT}"
-fi
+    # 详细列表
+    echo "<h1>服务</h1><ul>"
+    for ko_file in "${TMP_DIR}/"*.ko; do
+        [ -e "$ko_file" ] || continue
+        local name=$(cat "$ko_file")
+        local info=$(cat "${ko_file%.ko}.info")
+        echo "<li>$name <span class='small failed'>($info)</span><span class='status failed'>已中断</span></li>"
+    done
+    for ok_file in "${TMP_DIR}/"*.ok; do
+        [ -e "$ok_file" ] || continue
+        local name=$(cat "$ok_file")
+        echo "<li>$name <span class='status success'>正常运作</span></li>"
+    done
+    echo "</ul>"
+
+    # 时间戳和事件
+    echo "<p class=small>最后检查时间: $(date +%FT%T%z)</p>"
+    if [ -f "$INCIDENTS_FILE" ]; then
+        echo "<h1>事件</h1>"
+        if [ -s "$INCIDENTS_FILE" ]; then
+            sed 's|^|<p>|;s|$|</p>|' "$INCIDENTS_FILE"
+        else
+            echo "<p>没有事件需要通报 ;)</p>"
+        fi
+    fi
+
+    echo "</div>"
+    echo "<div class='footer'>"
+    echo "    <a href=\"https://blog.tama.guru\">公告板</a> | "
+    echo "    <a href=\"https://box.tama.guru\">提问箱</a> | "
+    echo "    <a href=\"https://share.tama.guru\">盘</a>"
+    echo "</div>"
+    echo "</body>"
+    echo "</html>"
+} > "${TMP_DIR}/index.html"
+
+# 部署文件
+mv "${TMP_DIR}/index.html" html/
+mv "${TMP_DIR}/"*.ko html/
+mv "${TMP_DIR}/"*.ok html/
+
+# 清理临时目录
+rm -rf "$TMP_DIR"
+
+# 设置退出码
+exit_code=$(ls "${TMP_DIR}/"*.ko 2>/dev/null | wc -l)
+exit "$exit_code"
