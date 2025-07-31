@@ -1,0 +1,41 @@
+name: TinyStatus CI
+
+on:
+  schedule:
+    - cron: '*/10 * * * *'  # 每10分钟执行一次
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '18'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run TinyStatus
+        run: |
+          chmod +x ./tinystatus
+          ./tinystatus
+          mkdir html
+          mv index.html html/
+
+      - name: Commit changes
+        run: |
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action"
+          git add html/index.html
+          git commit -m "Update status page" -a || true
+
+      - name: Deploy to GitHub Pages
+        uses: JamesIves/github-pages-deploy-action@v4
+        with:
+          branch: gh-pages
+          folder: html
+          clean: true
