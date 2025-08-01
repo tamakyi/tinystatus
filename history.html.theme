@@ -3,13 +3,13 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>TinyStatus History</title>
+    <title>狼的状态板 3.0 历史记录</title>
     <link rel="apple-touch-icon" sizes="180x180" href="assets/apple-touch-icon.png">
     <link rel="icon" type="image/png" sizes="32x32" href="assets/favicon-32x32.png">
     <link rel="icon" type="image/png" sizes="16x16" href="assets/favicon-16x16.png">
     <link rel="manifest" href="assets/site.webmanifest">
     <link rel="mask-icon" href="assets/safari-pinned-tab.svg" color="#5bbad5">
-    <meta name="description" content="TinyStatus is a simple, customizable status page generator that allows you to monitor the status of various services and display them on a clean, responsive web page.">
+    <meta name="description" content="狼的状态板基于github action实现每10分值自动编译静态状态页面。">
     <meta name="msapplication-TileColor" content="#da532c">
     <meta name="theme-color" content="#ffffff">
     <style>
@@ -92,7 +92,7 @@
     </style>
 </head>
 <body>
-    <h1>TinyStatus History</h1>
+    <h1>狼的状态板 3.0 历史记录</h1>
     <div class="history-grid">
         {% for service, entries in history.items() %}
         <div class="history-item">
@@ -101,7 +101,7 @@
             <div class="history-entry">
                 <span>{{ entry.timestamp.split('T')[0] }} {{ entry.timestamp.split('T')[1][:8] }}</span>
                 <span class="{% if entry.status %}status-up{% else %}status-down{% endif %}">
-                    {{ 'Up' if entry.status else 'Down' }}
+                    {{ '上线' if entry.status else '离线' }}
                 </span>
             </div>
             {% endfor %}
@@ -110,8 +110,8 @@
     </div>
     <div class="footer">
         <p>Last updated: {{ last_updated }}</p>
-        <p><a href="index.html">Back to Current Status</a></p>
-        <p>Powered by <a href="https://github.com/harsxv/tinystatus">TinyStatus</a></p>
+        <p><a href="index.html">返回实时状态</a></p>
+        <p>Powered by <a href="https://github.com/tamakyi/tinystatus">TinyStatus</a></p>
     </div>
 </body>
 </html>

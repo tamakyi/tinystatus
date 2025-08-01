@@ -1,82 +1,44 @@
-- title: 'Group 1'
+- title: '自建服务'
   checks:
-    - name: GitHub Home
+    - name: 狼的公告板
       type: http
-      host: https://github.com
-      url: https://docs.github.com/en
+      host: https://blog.tama.guru
+      url: https://blog.tama.guru
       expected_code: 200
 
-    - name: GitHub API
+    - name: 狼的提问箱
       type: http
-      host: https://api.github.com
-      url: https://api.github.com/users
+      host: https://box.tama.guru
+      url: https://box.tama.guru
       expected_code: 200
 
-    - name: Wikipedia Home
+    - name: 狼的导航站
       type: http
-      host: https://www.wikipedia.org
-      url: https://en.wikipedia.org/wiki/Main_Page
+      host: https://tama.guru
+      url: https://tama.guru
       expected_code: 200
 
-    - name: Wikipedia API
+    - name: 狼的共享盘
       type: http
-      host: https://en.wikipedia.org/w/api.php
+      host: https://share.tama.guru
       expected_code: 200
 
-    - name: Hacker News
+    - name: 狼的聊天室
       type: http
-      host: https://news.ycombinator.com
+      host: https://chat.tama.guru
       expected_code: 200
 
-- title: 'Group 2'
+- title: '公共服务'
   checks:
-    - name: Cloudflare DNS Checker
+    - name: Cloudflare DNS 检查器
       type: ping
       host: 1.1.1.1
 
-    - name: Google Public DNS
+    - name: Google 公共 DNS 检查器
       type: ping
       host: 8.8.8.8
 
-    - name: Dummy Postgres Database
-      type: port
-      host: ec2-54-173-89-248.compute-1.amazonaws.com
-      port: 5432
-
-    - name: Dummy MySQL Database
+    - name: 本地 Mysql 端口检查
       type: port
       host: db.example.com
       port: 3306
-
-    - name: Google Home
-      type: http
-      host: https://www.google.com
-      expected_code: 200
-
-
-- title: 'Group 3'
-  checks:
-    - name: Amazon Web Services
-      type: http
-      host: https://aws.amazon.com
-      expected_code: 200
-
-    - name: AWS S3 API
-      type: http
-      host: https://s3.amazonaws.com
-      expected_code: 200
-
-    - name: Twitter
-      type: http
-      host: https://twitter.com
-      expected_code: 200
-
-    - name: Localhost
-      type: ping
-      host: localhost
-
-    - name: Home Server with Self-Signed Certs
-      type: http
-      host: https://homeserver.local
-      ssc: True
-      expected_code: 200
