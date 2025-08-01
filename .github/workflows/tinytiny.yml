@@ -9,6 +9,13 @@ jobs:
   monitor:
     runs-on: ubuntu-latest
     steps:
+      - name: Setting timezone
+        uses: szenius/set-timezone@v1.2
+        with:
+          timezoneLinux: "Asia/Shanghai"
+          timezoneMacos: "Asia/Shanghai"
+          timezoneWindows: "China Standard Time"
+        
       - name: Checkout code
         uses: actions/checkout@v4
 
