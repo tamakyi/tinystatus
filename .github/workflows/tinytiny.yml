@@ -23,9 +23,16 @@ jobs:
           pip install -r requirements.txt
           python -m main
 
-      - name: Archive HTML reports
-        uses: actions/upload-artifact@v4
-        with:
-          name: status-reports
-          path: html/  # 输出目录
-          retention-days: 1  # 保留7天
+      - name: Move html files
+        run: |
+          mkdir -p html
+          mv index.html html/
+          mv history.html html/
+
+      - name: Commit and push html files
+        run: |
+          git config --local user.email "github-actions[bot]@users.noreply.github.com"
+          git config --local user.name "github-actions[bot]"
+          git add html/index.html html/history.html
+          git commit -m "Update html files after workflow run"
+          git push
