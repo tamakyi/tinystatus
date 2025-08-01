@@ -27,7 +27,7 @@ TEMPLATE_FILE = os.getenv('TEMPLATE_FILE', 'index.html.theme')
 HISTORY_TEMPLATE_FILE = os.getenv('HISTORY_TEMPLATE_FILE', 'history.html.theme')
 STATUS_HISTORY_FILE = os.getenv('STATUS_HISTORY_FILE', 'history.json')
 CURRENT_DIR = os.path.dirname(os.path.abspath(__file__))
-HTML_OUTPUT_DIRECTORY = os.path.join(CURRENT_DIR, 'html')
+HTML_OUTPUT_DIRECTORY = CURRENT_DIR
 
 # Platform Idendifier
 PLATFORM = platform.system().lower()
