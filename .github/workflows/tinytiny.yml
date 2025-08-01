@@ -28,4 +28,4 @@ jobs:
         with:
           name: status-reports
           path: html/  # 输出目录
-          retention-days: 7  # 保留7天
+          retention-days: 1  # 保留7天
