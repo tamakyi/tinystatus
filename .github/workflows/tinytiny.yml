@@ -25,14 +25,14 @@ jobs:
 
       - name: Move html files
         run: |
-          mkdir -p html
-          mv index.html html/
-          mv history.html html/
+          mkdir -p docs
+          mv index.html docs/
+          mv history.html docs/
 
       - name: Commit and push html files
         run: |
           git config --local user.email "github-actions[bot]@users.noreply.github.com"
           git config --local user.name "github-actions[bot]"
-          git add html/index.html html/history.html
+          git add docs/index.html docs/history.html
           git commit -m "Update html files after workflow run"
           git push
